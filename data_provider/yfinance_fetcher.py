@@ -94,6 +94,11 @@ class YfinanceFetcher(BaseFetcher):
         """
         return is_suffix_market_symbol(stock_code, "tw")
 
+    @staticmethod
+    def _is_fr_suffix_stock(stock_code: str) -> bool:
+        """Return True for Euronext Paris Yahoo symbols (e.g. ``MC.PA`` / ``TTE.PA``)."""
+        return is_suffix_market_symbol(stock_code, "fr")
+
     def _convert_stock_code(self, stock_code: str) -> str:
         """
         转换股票代码为 Yahoo Finance 格式
@@ -132,8 +137,12 @@ class YfinanceFetcher(BaseFetcher):
             return code
 
         # 日股/韩股/台股 MVP：显式 Yahoo Finance suffix-only 代码，原样传给 Yahoo。
-        if self._is_jp_kr_suffix_stock(code) or self._is_tw_suffix_stock(code):
-            logger.debug(f"识别为日韩台 Yahoo suffix 代码: {code}")
+        if (
+            self._is_jp_kr_suffix_stock(code)
+            or self._is_tw_suffix_stock(code)
+            or self._is_fr_suffix_stock(code)
+        ):
+            logger.debug(f"识别为日韩台/Euronext Paris Yahoo suffix 代码: {code}")
             return code
 
         # 港股：hk前缀 -> .HK后缀
@@ -367,6 +376,8 @@ class YfinanceFetcher(BaseFetcher):
             return self._get_kr_main_indices(yf)
         if region == "tw":
             return self._get_tw_main_indices(yf)
+        if region == "fr":
+            return self._get_fr_main_indices(yf)
 
         # A 股指数：akshare 代码 -> (yfinance 代码, 显示名称)
         yf_mapping = {
@@ -524,6 +535,30 @@ class YfinanceFetcher(BaseFetcher):
                 return results
         except Exception as e:
             logger.error(f"[Yfinance] 获取台湾指数行情失败: {e}")
+        return None
+
+    def _get_fr_main_indices(self, yf) -> Optional[List[Dict[str, Any]]]:
+        """获取 Euronext Paris / 欧洲主要指数行情（CAC 40、SBF 120、Euro Stoxx 50）。"""
+        fr_indices = {
+            'FCHI': ('^FCHI', 'CAC 40'),
+            'SBF120': ('^SBF120', 'SBF 120'),
+            'STOXX50E': ('^STOXX50E', 'Euro Stoxx 50'),
+        }
+        results = []
+        try:
+            for code, (yf_symbol, name) in fr_indices.items():
+                try:
+                    item = self._fetch_yf_ticker_data(yf, yf_symbol, name, code)
+                    if item:
+                        results.append(item)
+                        logger.debug(f"[Yfinance] 获取欧洲指数 {name} 成功")
+                except Exception as e:
+                    logger.warning(f"[Yfinance] 获取欧洲指数 {name} 失败: {e}")
+            if results:
+                logger.info(f"[Yfinance] 成功获取 {len(results)} 个欧洲指数行情")
+                return results
+        except Exception as e:
+            logger.error(f"[Yfinance] 获取欧洲指数行情失败: {e}")
         return None
 
     def _is_us_stock(self, stock_code: str) -> bool:
@@ -821,8 +856,9 @@ class YfinanceFetcher(BaseFetcher):
             or _is_hk_market(stock_code)
             or self._is_jp_kr_suffix_stock(stock_code)
             or self._is_tw_suffix_stock(stock_code)
+            or self._is_fr_suffix_stock(stock_code)
         ):
-            logger.debug(f"[Yfinance] {stock_code} 不是支持的美股、港股或日韩台代码，跳过")
+            logger.debug(f"[Yfinance] {stock_code} 不是支持的美股、港股、日韩台或 Euronext Paris 代码，跳过")
             return None
 
         try:

@@ -122,6 +122,18 @@ PY
 
 回滚方式：移除 `tw` 市场识别、交易日历注册、YFinance 路由扩展、三大法人资料层/报告消费、TWD 标注、服务层/API 市场枚举及前端市场类型放行，并删除本文档中的能力声明。
 
+## Euronext Paris 个股与大盘复盘（`.PA`）
+
+支持格式：Yahoo Finance 后缀代码 `MC.PA`、`TTE.PA`、`AI.PA`、`STLAP.PA` 等（base 为 1-6 位字母数字且至少含一个字母，大小写不敏感）。
+
+- 市场识别：共享 `market_symbol_utils` 新增 `fr` 后缀规则（`.PA`），因此 `detect_market` / `get_market_for_stock` / 数据源路由一致返回 `fr`，不再把 `MC.PA` 误判为美股（Prompt）或 A 股（数据源）；`BRK.B` 等美股点号代码保持 `us`。
+- 数据源：日线、实时/近实时行情、名称与轻量基本面只走 `YfinanceFetcher`，币种取 yfinance 返回的 `currency`（EUR）；A 股专属能力按 `not_supported` 降级。
+- 交易日历：`fr: XPAR / Europe/Paris`，常规交易 09:00-17:30；收盘集合竞价 17:30-17:35 位于 XPAR 收盘之后，因此不设盘中收盘竞价窗口（`0` 分钟）。
+- 报告 Prompt：使用 EUR、ECB、CAC 40 / SBF 120 / Euro Stoxx 50、AMF 等欧洲市场语境。
+- 大盘复盘：`MARKET_REVIEW_REGION=fr` 抓取 `^FCHI`（CAC 40）、`^SBF120`、`^STOXX50E`，无市场宽度/板块排行；`both` 包含 `fr`。
+
+不承诺项：Yahoo Finance 对 Euronext 约有 15 分钟延迟；不提供 Portfolio / Market Light / Web 自动补全的 `fr` 支持；报告语言仍为 `zh` / `en` / `ko`。
+
 ## 日本/韩国 Portfolio 与 Market Light 边界（Issue #1815 Phase 3）
 
 Portfolio 允许 JP/KR 账户、交易和持仓快照进入现有链路，但会将账户/持仓快照标记为 `data_quality=partial`，并通过 `limitations` 明确 `realtime_quote_best_effort`、`fx_and_cost_basis_partial`、`sector_and_risk_metrics_limited`；不承诺 JPY/KRW 汇率、成本、市值、行业集中度或组合风险指标完整口径。

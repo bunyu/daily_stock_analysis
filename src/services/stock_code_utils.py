@@ -237,7 +237,9 @@ def _normalize_code_and_exchange(raw: str) -> tuple[Optional[str], str]:
         return None, explicit_exchange
     suffix_symbol = normalize_suffix_market_symbol(text)
     if suffix_symbol is not None:
-        return suffix_symbol, explicit_exchange
+        # Alphanumeric suffix markets (Euronext Paris ``MC.PA``) are not in
+        # ``_SUFFIX_DIGIT_LENS``; report their Yahoo suffix as the exchange.
+        return suffix_symbol, explicit_exchange or suffix_symbol.rsplit(".", 1)[1]
     if any(text.endswith(suffix) for suffix in _PRESERVE_SUFFIXES):
         return None, explicit_exchange
     if re.match(r"^[A-Z]{1,5}(?:\.(?:US|[A-Z]))?$", text):

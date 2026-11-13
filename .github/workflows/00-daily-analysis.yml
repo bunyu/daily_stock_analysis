@@ -1,9 +1,12 @@
 name: 每日股票分析
 
 on:
-  # 定时触发 - 每天北京时间 18:00 (UTC 10:00)
+  # 定时触发 - 周一到周五巴黎时间 08:30（Euronext Paris 09:00 开盘前）。
+  # GitHub cron 只支持 UTC，巴黎冬令时 UTC+1 / 夏令时 UTC+2，因此注册两个 cron，
+  # 由下方 schedule-gate 按当日巴黎时区偏移只放行其中一个，避免一天跑两次。
   schedule:
-    - cron: '0 10 * * 1-5'     # 周一到周五，UTC 10:00 = 北京时间 18:00
+    - cron: '30 6 * * 1-5'     # UTC 06:30 = 巴黎夏令时 08:30
+    - cron: '30 7 * * 1-5'     # UTC 07:30 = 巴黎冬令时 08:30
   
   # 手动触发
   workflow_dispatch:
@@ -29,7 +32,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  schedule-gate:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - name: 按巴黎时区偏移选择 cron
+        id: gate
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          if [ "$EVENT_NAME" != "schedule" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          offset=$(TZ=Europe/Paris date +%z)
+          if { [ "$EVENT_SCHEDULE" = "30 6 * * 1-5" ] && [ "$offset" = "+0200" ]; } \
+            || { [ "$EVENT_SCHEDULE" = "30 7 * * 1-5" ] && [ "$offset" = "+0100" ]; }; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skip: cron '$EVENT_SCHEDULE' is not 08:30 Europe/Paris today (offset $offset)"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
   analyze:
+    needs: schedule-gate
+    if: needs.schedule-gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     # 兼容误将 STOCK_LIST 配到同名 Environment variables 的场景；
     # 推荐位置仍是 Settings -> Secrets and variables -> Actions -> Repository variables。

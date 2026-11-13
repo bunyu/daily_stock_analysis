@@ -445,6 +445,8 @@ schedule:
   - cron: '0 10 * * 1-5'  # UTC time, +8 = Beijing time
 ```
 
+> This fork ships with Mon-Fri **08:30 Europe/Paris** (before the Euronext open): two UTC crons (`30 6` for CEST, `30 7` for CET) plus a `schedule-gate` job that only lets the one matching today's Paris UTC offset run. To change the local time, edit both crons and the matching strings in `schedule-gate`.
+
 Common cron examples:
 | Expression | Description |
 |--------|------|

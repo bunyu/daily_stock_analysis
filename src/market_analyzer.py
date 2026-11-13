@@ -151,7 +151,7 @@ class MarketAnalyzer:
         self.search_service = search_service
         self.analyzer = analyzer
         self.data_manager = DataFetcherManager()
-        self.region = region if region in ("cn", "us", "hk", "jp", "kr") else "cn"
+        self.region = region if region in ("cn", "us", "hk", "jp", "kr", "fr") else "cn"
         self.profile: MarketProfile = get_profile(self.region)
         self.strategy = get_market_strategy_blueprint(self.region)
 
@@ -307,6 +307,8 @@ class MarketAnalyzer:
             return "Japan market" if review_language == "en" else "日本市场"
         if self.region == "kr":
             return "Korea market" if review_language == "en" else "韩国市场"
+        if self.region == "fr":
+            return "Euronext Paris market" if review_language == "en" else "法国市场"
         if review_language == "en":
             return "A-share market"
         return "A股市场"
@@ -321,13 +323,15 @@ class MarketAnalyzer:
             return "JPY bn" if self._get_review_language() == "en" else "十亿日元"
         if self.region == "kr":
             return "KRW bn" if self._get_review_language() == "en" else "十亿韩元"
+        if self.region == "fr":
+            return "EUR bn" if self._get_review_language() == "en" else "十亿欧元"
         return "CNY 100m" if self._get_review_language() == "en" else "亿"
 
     def _format_turnover_value(self, amount_raw: float) -> str:
         """Format raw turnover according to market-specific units."""
         if amount_raw == 0.0:
             return "N/A"
-        if self.region in ("us", "hk", "jp", "kr"):
+        if self.region in ("us", "hk", "jp", "kr", "fr"):
             return f"{amount_raw / 1e9:.2f}"
         if amount_raw > 1e6:
             return f"{amount_raw / 1e8:.0f}"
@@ -348,6 +352,7 @@ class MarketAnalyzer:
                 "hk": "HK Market Recap",
                 "jp": "Japan Market Recap",
                 "kr": "Korea Market Recap",
+                "fr": "Euronext Paris Market Recap",
             }
             market_name = market_names.get(self.region, "A-share Market Recap")
             return f"## {date} {market_name}"
@@ -363,6 +368,8 @@ class MarketAnalyzer:
                 return "Analyze the key moves in the Nikkei 225, TOPIX, and other major Japanese indices."
             if self.region == "kr":
                 return "Analyze the key moves in the KOSPI, KOSDAQ, and other major Korean indices."
+            if self.region == "fr":
+                return "Analyze the key moves in the CAC 40, SBF 120, Euro Stoxx 50, and other major European indices."
             return "Analyze the price action in the SSE, SZSE, ChiNext, and other major indices."
         return self.profile.prompt_index_hint
 
@@ -448,6 +455,33 @@ Focus on KOSPI, KOSDAQ, semiconductor heavyweights, and global technology risk a
 - Risk-on: KOSPI and KOSDAQ rise together with confirmed technology leadership and improving external risk appetite.
 - Neutral: index or heavyweight divergence; keep sizing controlled and wait for confirmation.
 - Risk-off: technology heavyweights weaken or external risk rises; prioritize drawdown control."""
+        if self.region == "fr" and self._get_review_language() == "en":
+            return """## Strategy Blueprint: Euronext Paris Market Regime Strategy
+Focus on CAC 40, SBF 120, Euro Stoxx 50, EUR dynamics, and ECB policy to define the next-session trading plan.
+
+### Strategy Principles
+- Read CAC 40 and Euro Stoxx 50 alignment first, then assess heavyweight sectors (luxury, energy, banks, industrials).
+- Separate local European drivers (ECB, EUR, political risk) from US-market and China-demand read-through.
+- Base judgments only on available index data, news, and price action without inventing breadth or sector statistics.
+
+### Analysis Dimensions
+- Trend Regime: Classify French equities as advancing, range-bound, or defensive.
+  - Are CAC 40, SBF 120, and Euro Stoxx 50 directionally aligned
+  - Have key index ranges been reclaimed or lost
+  - Are heavyweight names supporting the index
+- Macro & Rates: Map ECB policy, EUR, and sovereign spreads into equity impact.
+  - ECB rate path and euro-area inflation data
+  - EUR/USD direction and implications for exporters
+  - OAT-Bund spread and French political risk
+- Theme Signals: Identify durable leadership and crowded areas to avoid.
+  - Luxury and China-demand read-through
+  - Rotation across energy, banks, defense, and industrials
+  - Whether earnings and news catalysts confirm price action
+
+### Action Framework
+- Risk-on: major indices rise together with easing rates/FX pressure and confirmed heavyweight leadership.
+- Neutral: index divergence or macro disruption; keep sizing controlled and wait for confirmation.
+- Risk-off: major indices weaken or political/rate risk rises; prioritize drawdown control."""
         if self.region == "us" and self._get_review_language() == "zh":
             return """## 美股市场三段式复盘策略
 聚焦指数趋势、宏观叙事与板块轮动，给出次日风控与仓位框架。
@@ -514,6 +548,12 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
 - **Trend Regime**: Classify Korea equities as advancing, range-bound, or defensive based on KOSPI/KOSDAQ alignment.
 - **Technology Cycle**: Track semiconductor, AI hardware, and global technology read-through for market risk appetite.
 - **Theme Signals**: Focus on battery, auto, internet-platform, and KOSDAQ growth-stock rotation.
+"""
+        if self.region == "fr" and review_language == "en":
+            return """### 6. Strategy Framework
+- **Trend Regime**: Classify French equities as advancing, range-bound, or defensive based on CAC 40/SBF 120/Euro Stoxx 50 alignment.
+- **Macro & Rates**: Track ECB policy, EUR, and OAT-Bund spreads for equity risk appetite.
+- **Theme Signals**: Focus on luxury, energy, banks, defense, and industrials rotation.
 """
         if self.region == "us" and review_language == "zh":
             return """### 六、策略框架
@@ -743,6 +783,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             "hk": "港股市场" if review_language == "zh" else "HK market",
             "jp": "日本股市" if review_language == "zh" else "Japan stock market",
             "kr": "韩国股市" if review_language == "zh" else "Korea stock market",
+            "fr": "法国股市" if review_language == "zh" else "Euronext Paris stock market",
         }
         
         try:
@@ -1781,7 +1822,7 @@ Concept lagging: {bottom_concepts_text if bottom_concepts_text else "N/A"}"""
         output_template_sections = self._build_output_template_sections(review_language)
         zh_market_scope_name = self._get_market_scope_name("zh")
         zh_report_title = f"{overview.date} 大盘复盘"
-        if self.region in ("jp", "kr"):
+        if self.region in ("jp", "kr", "fr"):
             zh_report_title = f"{overview.date} {zh_market_scope_name}大盘复盘"
         workflow_hint = (
             "报告要像交易员盘后工作台：先给结论，再按数据表、主线、催化、计划展开"
@@ -1962,6 +2003,7 @@ Output the report content directly, no extra commentary.
                 "hk": "HK Market Recap",
                 "jp": "Japan Market Recap",
                 "kr": "Korea Market Recap",
+                "fr": "Euronext Paris Market Recap",
             }
             market_name = market_names.get(self.region, "A-share Market Recap")
             report = f"""## {overview.date} {market_name}
@@ -1983,7 +2025,7 @@ Market conditions can change quickly. The data above is for reference only and d
 """
             return report
 
-        market_labels = {"cn": "A股", "us": "美股", "hk": "港股", "jp": "日股", "kr": "韩股"}
+        market_labels = {"cn": "A股", "us": "美股", "hk": "港股", "jp": "日股", "kr": "韩股", "fr": "法股"}
         market_label = market_labels.get(self.region, "A股")
         dashboard_block = (
             self._build_stats_block(overview)

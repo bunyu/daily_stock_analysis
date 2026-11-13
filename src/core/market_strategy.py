@@ -228,6 +228,39 @@ KR_BLUEPRINT = MarketStrategyBlueprint(
         "防守：科技权重转弱或外部风险升温，优先控制回撤。",
     ],
 )
+FR_BLUEPRINT = MarketStrategyBlueprint(
+    region="fr",
+    title="法国（Euronext Paris）市场三段式复盘策略",
+    positioning="聚焦 CAC 40、SBF 120、Euro Stoxx 50、欧元与欧洲央行政策，形成次日交易计划。",
+    principles=[
+        "先看 CAC 40 与 Euro Stoxx 50 是否同向，再看奢侈品、能源、银行、工业等权重板块线索。",
+        "区分欧洲本地因素（ECB、欧元、政治风险）与美股/中国需求等外部映射。",
+        "只基于可得指数、新闻和价格行为判断，不臆造市场广度或板块统计。",
+    ],
+    dimensions=[
+        StrategyDimension(
+            name="趋势结构",
+            objective="判断法国市场处于上攻、震荡还是防守阶段。",
+            checkpoints=["CAC 40/SBF 120/Euro Stoxx 50 是否同向", "指数是否突破或跌破关键区间", "权重股是否支撑指数"],
+        ),
+        StrategyDimension(
+            name="宏观与利率",
+            objective="识别欧洲央行、欧元汇率与国债利差对权益市场的影响。",
+            checkpoints=["ECB 利率路径与通胀数据", "欧元/美元方向对出口股的影响", "法德国债利差与政治风险"],
+        ),
+        StrategyDimension(
+            name="主题线索",
+            objective="提炼可延续主线与需要规避的拥挤方向。",
+            checkpoints=["奢侈品与中国需求映射", "能源/银行/国防/工业是否轮动", "财报与新闻催化是否支撑价格行为"],
+        ),
+    ],
+    action_framework=[
+        "进攻：主要指数共振上行 + 利率与汇率环境改善 + 权重板块确认。",
+        "均衡：指数分化或宏观扰动，控制仓位并等待确认。",
+        "防守：主要指数转弱或政治/利率风险升温，优先控制回撤。",
+    ],
+)
+
 
 def get_market_strategy_blueprint(region: str) -> MarketStrategyBlueprint:
     """Return strategy blueprint by market region."""
@@ -239,4 +272,6 @@ def get_market_strategy_blueprint(region: str) -> MarketStrategyBlueprint:
         return JP_BLUEPRINT
     if region == "kr":
         return KR_BLUEPRINT
+    if region == "fr":
+        return FR_BLUEPRINT
     return CN_BLUEPRINT

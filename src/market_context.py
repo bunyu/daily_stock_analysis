@@ -19,7 +19,7 @@ def detect_market(stock_code: Optional[str]) -> str:
     """Detect market from stock code.
 
     Returns:
-        One of 'cn', 'hk', 'us', or 'cn' as fallback.
+        One of 'cn', 'hk', 'us', 'jp', 'kr', 'tw', 'fr', or 'cn' as fallback.
     """
     if not stock_code:
         return "cn"
@@ -77,6 +77,10 @@ _MARKET_ROLES = {
     "tw": {
         "zh": "台股",
         "en": "Taiwan stock",
+    },
+    "fr": {
+        "zh": "法股（泛欧交易所巴黎）",
+        "en": "Euronext Paris stock",
     },
 }
 
@@ -144,6 +148,23 @@ _MARKET_GUIDELINES = {
             "electronics-foundry supply chain, the three institutional investor groups (foreign / "
             "investment-trust / dealer), margin trading and day trading, and the TWSE/TPEx ±10% daily "
             "price limit; do not apply China A-share-specific concepts such as Northbound flows or Dragon Tiger lists."
+        ),
+    },
+    "fr": {
+        "zh": (
+            "- 本次分析对象为 **法股**（泛欧交易所巴黎 Euronext Paris 上市股票，Yahoo Finance 后缀 `.PA`），计价货币为欧元（EUR）。\n"
+            "- 请按欧洲市场语境分析，关注欧元汇率、欧洲央行（ECB）货币政策、CAC 40 / SBF 120 / Euro Stoxx 50 走势、"
+            "公司业绩与股息、AMF 监管公告；Euronext 无固定涨跌停，但有单股波动熔断（交易暂停/集合竞价）机制，"
+            "交易时间为巴黎时间 9:00-17:30，17:30-17:35 为收盘集合竞价；"
+            "不要套用 A 股涨跌停、北向资金、龙虎榜、融资融券等 A 股专属概念。"
+        ),
+        "en": (
+            "- This analysis covers a **Euronext Paris stock** (Yahoo Finance suffix `.PA`), quoted in EUR.\n"
+            "- Use European-market context: EUR FX, ECB monetary policy, CAC 40 / SBF 120 / Euro Stoxx 50 trends, "
+            "earnings and dividends, and AMF regulatory filings. Euronext has no fixed daily price limits but uses "
+            "per-stock volatility interruptions (trading halts / call auctions). Regular session is 09:00-17:30 "
+            "Paris time with a 17:30-17:35 closing auction. Do not apply China A-share concepts such as daily "
+            "price-limit boards, Northbound flows, Dragon Tiger lists, or margin-financing narratives."
         ),
     },
 }
