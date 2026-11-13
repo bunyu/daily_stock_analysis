@@ -991,8 +991,11 @@ class TestNotificationServiceReportGeneration(unittest.TestCase):
                             [result], report_type, report_date="2026-08-27"
                         )
 
+                        # Built-in renderer uses a half-width separator outside
+                        # Chinese; Jinja templates keep their own separator.
+                        sep = "：" if language == "zh" or renderer_enabled else ": "
                         self.assertIn(
-                            f"*📋 {expected_label}：daily:AlphaFetcher*",
+                            f"*📋 {expected_label}{sep}daily:AlphaFetcher*",
                             out,
                         )
 

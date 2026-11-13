@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [改进] 英文/韩文报告中的成交量、财务金额与每股分红改用英文量级（K/M/B）与 ISO 币种（缺失时按市场默认币种，如 Euronext Paris 为 EUR），标签分隔符改为半角冒号；每日工作流名称、步骤与日志改为英文，并在运行 Summary 页面展示报告。
 - [新功能] 新增 Euronext Paris（`.PA`，如 `MC.PA` / `TTE.PA`）个股分析：市场识别为 `fr`（不再误判为美股/A 股），日线与行情仅走 yfinance（EUR），交易日历 `XPAR` / `Europe/Paris`，Prompt 使用欧洲市场语境；`MARKET_REVIEW_REGION` 新增 `fr`（CAC 40 / SBF 120 / Euro Stoxx 50），`both` 现包含 `fr`。
 - [改进] 每日 Actions 定时改为周一到周五巴黎时间 08:30（Euronext 开盘前），以双 UTC cron + 时区偏移门控自动适配冬/夏令时。
 
