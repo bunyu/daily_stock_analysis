@@ -37,8 +37,10 @@ _SUFFIX_MARKET_SPECS: tuple[SuffixMarketSpec, ...] = (
     # shared helpers stay complete for all yfinance-only offshore markets.
     SuffixMarketSpec("tw", ("TW", "TWO"), (4, 5, 6)),
     # Euronext Paris: alphanumeric tickers of 1-6 chars with at least one
-    # letter (MC.PA, TTE.PA, AI.PA, STLAP.PA, 4GLD.PA).
-    SuffixMarketSpec("fr", ("PA",), (), base_pattern=r"(?=[A-Z0-9]*[A-Z])[A-Z0-9]{1,6}"),
+    # letter (MC.PA, TTE.PA, AI.PA, STLAP.PA, 4GLD.PA). Euronext Amsterdam
+    # (ASML.AS) shares the same trading hours, holidays and EUR quoting, so it
+    # rides on the same market code.
+    SuffixMarketSpec("fr", ("PA", "AS"), (), base_pattern=r"(?=[A-Z0-9]*[A-Z])[A-Z0-9]{1,6}"),
 )
 
 _MARKET_TO_SPEC = {spec.market: spec for spec in _SUFFIX_MARKET_SPECS}

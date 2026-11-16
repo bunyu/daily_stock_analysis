@@ -50,6 +50,7 @@ from src.report_language import (
     normalize_report_language,
 )
 from src.search_service import SearchService
+from src.multi_horizon import compute_multi_horizon
 from src.analysis_context_pack_prompt import format_analysis_context_pack_prompt_section
 from src.analysis_context_pack_overview import render_analysis_context_pack_overview
 from src.market_phase_summary import MARKET_PHASE_SUMMARY_KEY, render_market_phase_summary
@@ -656,6 +657,7 @@ class StockAnalysisPipeline:
                     trend_result = self.trend_analyzer.analyze(df, code)
                     logger.info(f"{stock_name}({code}) 趋势分析: {trend_result.trend_status.value}, "
                               f"买入信号={trend_result.buy_signal.value}, 评分={trend_result.signal_score}")
+                    trend_result.multi_horizon = self._compute_multi_horizon(code, _mkt, end_date)
             except Exception as e:
                 logger.warning(f"{stock_name}({code}) 趋势分析失败: {e}", exc_info=True)
 
@@ -903,6 +905,7 @@ class StockAnalysisPipeline:
             # Step 7.7: price_position fallback
             if result:
                 fill_price_position_if_needed(result, trend_result, realtime_quote)
+                result.multi_horizon = getattr(trend_result, "multi_horizon", None)
                 action_source_advice = getattr(result, "operation_advice", None)
                 stabilize_decision_with_structure(result, trend_result, fundamental_context)
                 adjustments = apply_phase_decision_guardrails(
@@ -1000,6 +1003,31 @@ class StockAnalysisPipeline:
             logger.exception(f"{stock_name}({code}) 详细错误信息:")
             return None
     
+    # Calendar-day multiplier in the fetchers is 2x, so 300 "days" yields
+    # roughly 410 daily bars: enough for MA200, its slope and the 52-week range.
+    _MULTI_HORIZON_FETCH_DAYS = 300
+
+    def _compute_multi_horizon(self, code: str, market: str, end_date: date) -> Optional[Dict[str, Any]]:
+        """Fetch a long daily history and derive short/medium/long-term trends and levels.
+
+        Only offshore markets served by Yahoo-style daily history are covered;
+        A-share analysis keeps its existing data volume. Best effort: any
+        failure returns ``None`` and the analysis continues without the block.
+        """
+        if market == "cn":
+            return None
+        try:
+            long_df, _source = self.fetcher_manager.get_daily_data(
+                code, days=self._MULTI_HORIZON_FETCH_DAYS
+            )
+            if long_df is None or long_df.empty or "date" not in long_df.columns:
+                return None
+            long_df = long_df[pd.to_datetime(long_df["date"]).dt.date <= end_date]
+            return compute_multi_horizon(long_df)
+        except Exception as exc:
+            logger.warning("%s multi-horizon analysis skipped: %s", code, exc)
+            return None
+
     def _enhance_context(
         self,
         context: Dict[str, Any],
@@ -1096,6 +1124,8 @@ class StockAnalysisPipeline:
                 'signal_reasons': trend_result.signal_reasons,
                 'risk_factors': trend_result.risk_factors,
             }
+            if trend_result.multi_horizon:
+                enhanced['multi_horizon'] = trend_result.multi_horizon
 
         # Issue #234：盘中分析使用实时 OHLC 与趋势 MA 覆盖 today。
         # 防护条件：trend_result.ma5 > 0 表示 MA 计算已成功且数据量充足。
@@ -1710,6 +1740,7 @@ class StockAnalysisPipeline:
                 )
                 action_chain_valid = pipeline_start_action is not None
                 fill_price_position_if_needed(result, trend_result, realtime_quote)
+                result.multi_horizon = getattr(trend_result, "multi_horizon", None)
                 realtime_data = initial_context.get("realtime_quote", {})
                 if isinstance(realtime_data, dict):
                     result.current_price = realtime_data.get("price")

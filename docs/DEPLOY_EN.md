@@ -445,7 +445,13 @@ schedule:
   - cron: '0 10 * * 1-5'  # UTC time, +8 = Beijing time
 ```
 
-> This fork ships with Mon-Fri **08:30 Europe/Paris** (before the Euronext open): two UTC crons (`30 6` for CEST, `30 7` for CET) plus a `schedule-gate` job that only lets the one matching today's Paris UTC offset run. To change the local time, edit both crons and the matching strings in `schedule-gate`.
+> This fork targets Mon-Fri **08:30 Europe/Paris** (before the Euronext open). GitHub's scheduler can start hours late, so the punctual trigger is an external scheduler calling the `workflow_dispatch` API (see below). The built-in crons are a backup at 08:47 Paris: two UTC crons (`47 6` for CEST, `47 7` for CET) plus a `schedule-gate` job that only lets the one matching today's Paris UTC offset run, and skips it when a dispatched run already succeeded or is still running that day. To change the backup time, edit both crons and the matching strings in `schedule-gate`.
+>
+> **External 08:30 trigger (e.g. cron-job.org):**
+> 1. GitHub -> Settings -> Developer settings -> Fine-grained tokens: create a token limited to this repository with **Actions: Read and write**.
+> 2. In the external scheduler create a job: `POST https://api.github.com/repos/<owner>/<repo>/actions/workflows/00-daily-analysis.yml/dispatches`, schedule Mon-Fri 08:30, time zone Europe/Paris.
+> 3. Headers: `Authorization: Bearer <token>`, `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2022-11-28`.
+> 4. Body: `{"ref":"main","inputs":{"mode":"full","force_run":"false"}}`. A successful call returns HTTP 204.
 
 Common cron examples:
 | Expression | Description |

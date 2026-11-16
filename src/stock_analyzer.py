@@ -18,7 +18,7 @@
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from enum import Enum
 
 import pandas as pd
@@ -132,10 +132,15 @@ class TrendAnalysisResult:
     signal_score: int = 0            # 综合评分 0-100
     signal_reasons: List[str] = field(default_factory=list)
     risk_factors: List[str] = field(default_factory=list)
+
+    # Multi-horizon trend and support/resistance view (src/multi_horizon.py);
+    # filled by the pipeline when a long enough daily history is available.
+    multi_horizon: Optional[Dict[str, Any]] = None
     
     def to_dict(self) -> Dict[str, Any]:
         return {
             'code': self.code,
+            'multi_horizon': self.multi_horizon,
             'trend_status': self.trend_status.value,
             'ma_alignment': self.ma_alignment,
             'trend_strength': self.trend_strength,

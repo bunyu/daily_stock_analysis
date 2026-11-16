@@ -319,7 +319,7 @@ def _infer_market(code: str) -> Optional[str]:
         return "kr"
     if text.endswith((".TW", ".TWO")):
         return "tw"
-    if text.endswith(".PA"):
+    if text.endswith((".PA", ".AS")):
         return "fr"
     if text.isdigit() and len(text) == 6:
         return "cn"

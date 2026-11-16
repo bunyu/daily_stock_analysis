@@ -24,6 +24,7 @@ from typing import Callable, Optional, List, Tuple, Dict, Any
 
 import pandas as pd
 import numpy as np
+from src.data.euronext_stocks import get_euronext_stock_name
 from src.data.stock_index_loader import get_index_stock_name
 from src.data.stock_mapping import STOCK_NAME_MAP, is_meaningful_stock_name
 from src.services.market_symbol_utils import is_suffix_market_symbol
@@ -3115,7 +3116,7 @@ class DataFetcherManager:
 
         # Normalize code (strip SH/SZ prefix etc.)
         stock_code = normalize_stock_code(stock_code)
-        static_name = STOCK_NAME_MAP.get(stock_code)
+        static_name = STOCK_NAME_MAP.get(stock_code) or get_euronext_stock_name(stock_code)
 
         # 1. 先检查缓存
         cached_name = self._get_cached_stock_name(stock_code)

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 非 A 股个股新增确定性的「多周期趋势与关键价位」：基于约 400 根日线计算短期/中期/长期趋势（MA10-20 / MA20-50 / MA50-200）、1M-12M 表现、52 周区间以及由波段高低点聚类 + MA50/MA200 得到的支撑/压力位，注入 Prompt 并在决策仪表盘报告中展示（含模型的分周期买入/持有/减仓结论）。
+- [新功能] Euronext 个股新闻检索改用法语/英语金融关键词（不再套用 A 股中文模板），内置 17 只常用标的的简称与行业关键词（`src/data/euronext_stocks.py`）；`fr` 市场新增 Euronext Amsterdam 后缀 `.AS`（如 `ASML.AS`）。
+- [改进] 每日 Actions 的 GitHub 定时改为备份触发（巴黎时间 08:47），当日已有外部 `workflow_dispatch` 运行成功或进行中时自动跳过；准点 08:30 建议由外部调度器调用 dispatch API，见 `docs/DEPLOY_EN.md`。
 - [改进] 英文/韩文报告中的成交量、财务金额与每股分红改用英文量级（K/M/B）与 ISO 币种（缺失时按市场默认币种，如 Euronext Paris 为 EUR），标签分隔符改为半角冒号；每日工作流名称、步骤与日志改为英文，并在运行 Summary 页面展示报告。
 - [新功能] 新增 Euronext Paris（`.PA`，如 `MC.PA` / `TTE.PA`）个股分析：市场识别为 `fr`（不再误判为美股/A 股），日线与行情仅走 yfinance（EUR），交易日历 `XPAR` / `Europe/Paris`，Prompt 使用欧洲市场语境；`MARKET_REVIEW_REGION` 新增 `fr`（CAC 40 / SBF 120 / Euro Stoxx 50），`both` 现包含 `fr`。
 - [改进] 每日 Actions 定时改为周一到周五巴黎时间 08:30（Euronext 开盘前），以双 UTC cron + 时区偏移门控自动适配冬/夏令时。

@@ -39,6 +39,12 @@ from src.config import (
     normalize_news_strategy_profile,
     resolve_news_window_days,
 )
+from src.data.euronext_stocks import (
+    build_euronext_news_query,
+    build_euronext_search_dimensions,
+    get_euronext_event_types,
+    get_euronext_profile,
+)
 from src.data.stock_mapping import (
     canonicalize_foreign_stock_code,
     foreign_stock_english_aliases,
@@ -2285,7 +2291,7 @@ class SearchService:
         _SECTOR_NEWS_CATEGORY: 1,
         _MACRO_NEWS_CATEGORY: 2,
     }
-    _AMBIGUOUS_EN_COMPANY_NAMES = {"apple", "meta", "square", "target", "gap"}
+    _AMBIGUOUS_EN_COMPANY_NAMES = {"apple", "meta", "square", "target", "gap", "orange", "euronext"}
     _AMBIGUOUS_EN_CONFIRMING_EVENT_TERMS = (
         "earnings", "revenue", "profit", "guidance", "filing", "buyback",
         "dividend", "lawsuit", "merger", "acquisition",
@@ -2663,6 +2669,9 @@ class SearchService:
             return {"search_lang": "zh-hans", "country": "CN"}
         if cls._is_us_stock(stock_code):
             return {"search_lang": "en", "country": "US"}
+        euronext_profile = get_euronext_profile(stock_code)
+        if euronext_profile is not None and euronext_profile.lang == "fr":
+            return {"search_lang": "fr", "country": "FR"}
         return {}
 
     # A-share ETF code prefixes (Shanghai 51/52/56/58, Shenzhen 15/16/18)
@@ -4062,6 +4071,7 @@ class SearchService:
         # display name is Chinese (e.g. AAPL -> 苹果), otherwise the foreign
         # branch below is unreachable and English headlines are missed.
         prefer_chinese = prefer_chinese and not (is_foreign and english_aliases)
+        euronext_query = build_euronext_news_query(stock_code, stock_name)
         if focus_keywords:
             # 如果提供了关键词，直接使用关键词作为查询
             query = " ".join(focus_keywords)
@@ -4073,6 +4083,9 @@ class SearchService:
                 if stock_code
                 else f"{stock_name} 股票 最新消息"
             )
+        elif euronext_query:
+            # Euronext (.PA / .AS): French or English financial vocabulary
+            query = euronext_query
         elif is_foreign:
             # 港股/美股使用英文搜索关键词；优先使用英文公司名（issue #2026）
             if english_aliases and short_name and short_name != effective_name:
@@ -4336,7 +4349,10 @@ class SearchService:
             SearchResponse 对象
         """
         if event_types is None:
-            if self._is_foreign_stock(stock_code):
+            euronext_event_types = get_euronext_event_types(stock_code)
+            if euronext_event_types is not None:
+                event_types = euronext_event_types
+            elif self._is_foreign_stock(stock_code):
                 event_types = ["earnings report", "insider selling", "quarterly results"]
             else:
                 event_types = ["年报预告", "减持公告", "业绩快报"]
@@ -4408,8 +4424,12 @@ class SearchService:
 
         is_foreign = self._is_foreign_stock(stock_code)
         is_index_etf = self.is_index_or_etf(stock_code, stock_name)
+        euronext_dimensions = build_euronext_search_dimensions(stock_code, stock_name)
 
-        if is_foreign:
+        if euronext_dimensions is not None:
+            # Euronext (.PA / .AS): curated French/English queries per symbol
+            search_dimensions = euronext_dimensions
+        elif is_foreign:
             # Issue #2026: Foreign-ticker English alias resolution from the
             # single source of truth (STOCK_ENGLISH_NAME_MAP in
             # src/data/stock_mapping.py). When STOCK_NAME_MAP maps the ticker
@@ -4767,7 +4787,10 @@ class SearchService:
         successful_providers = []
         
         # 使用多个关键词模板搜索
-        is_foreign = self._is_foreign_stock(stock_code)
+        is_foreign = (
+            self._is_foreign_stock(stock_code)
+            or get_euronext_event_types(stock_code) is not None
+        )
         keywords = self.ENHANCED_SEARCH_KEYWORDS_EN if is_foreign else self.ENHANCED_SEARCH_KEYWORDS
         for i, keyword_template in enumerate(keywords[:max_attempts]):
             query = keyword_template.format(name=stock_name, code=stock_code)

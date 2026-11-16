@@ -38,6 +38,7 @@ from src.config import (
     get_explicit_llm_channel_model_provider,
     resolve_news_window_days,
 )
+from src.multi_horizon import build_multi_horizon_prompt
 from src.llm.hermes import (
     HERMES_CHANNEL_NAME,
     build_hermes_redaction_values,
@@ -1810,6 +1811,9 @@ class AnalysisResult:
 
     # ========== 基本面上下文（仅运行时，用于通知拼装；不持久化到 to_dict）==========
     fundamental_context: Optional[Dict[str, Any]] = None
+
+    # ========== Multi-horizon trend / support-resistance view (runtime only, for report rendering) ==========
+    multi_horizon: Optional[Dict[str, Any]] = None
     market_structure_context: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -4875,6 +4879,9 @@ Output strictly in the following JSON format. This is a complete Decision Dashbo
 {chr(10).join('- ' + note for note in consistency_notes)}
 """
         
+        # Multi-horizon trend and support/resistance levels (computed, see src/multi_horizon.py)
+        prompt += build_multi_horizon_prompt(context.get('multi_horizon'), report_language)
+
         # 添加昨日对比数据
         if 'yesterday' in context:
             volume_change = context.get('volume_change_ratio', 'N/A')

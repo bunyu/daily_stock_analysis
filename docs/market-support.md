@@ -132,6 +132,10 @@ PY
 - 报告 Prompt：使用 EUR、ECB、CAC 40 / SBF 120 / Euro Stoxx 50、AMF 等欧洲市场语境。
 - 大盘复盘：`MARKET_REVIEW_REGION=fr` 抓取 `^FCHI`（CAC 40）、`^SBF120`、`^STOXX50E`，无市场宽度/板块排行；`both` 包含 `fr`。
 
+- Euronext Amsterdam：后缀 `.AS`（如 `ASML.AS`）与 `.PA` 共用 `fr` 市场（相同交易时段、节假日与 EUR 计价）。
+- 新闻检索：`src/data/euronext_stocks.py` 为常用标的维护简称与行业/风险关键词，`SearchService` 对 `fr` 市场使用法语（或英语）查询模板；未收录的 `.PA` / `.AS` 代码使用通用法语模板。新增标的只需在该文件追加一条 profile。
+- 多周期趋势与关键价位：非 A 股个股额外拉取约 400 根日线，由 `src/multi_horizon.py` 计算短/中/长期趋势与支撑/压力位，注入 Prompt 并在决策仪表盘报告展示；历史不足 60 根时不展示，不足 200 根时长期趋势显示为数据不足。
+
 不承诺项：Yahoo Finance 对 Euronext 约有 15 分钟延迟；不提供 Portfolio / Market Light / Web 自动补全的 `fr` 支持；报告语言仍为 `zh` / `en` / `ko`。
 
 ## 日本/韩国 Portfolio 与 Market Light 边界（Issue #1815 Phase 3）

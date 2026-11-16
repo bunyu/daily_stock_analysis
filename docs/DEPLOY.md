@@ -480,7 +480,7 @@ git push
 
 ### 定时说明
 
-默认配置：**周一到周五，巴黎时间 08:30**（Euronext 开盘前）自动执行。GitHub cron 只支持 UTC，工作流注册 `30 6`（夏令时）与 `30 7`（冬令时）两个 cron，并由 `schedule-gate` 按当日巴黎时区偏移只放行其中一个；修改时间时需同时修改两个 cron 与门控中的对应字符串。下文为原上游北京时间示例
+默认配置：**周一到周五，巴黎时间 08:30**（Euronext 开盘前）自动执行。GitHub cron 只支持 UTC，GitHub 定时可能延迟数小时，准点 08:30 建议由外部调度器（如 cron-job.org）调用 `workflow_dispatch` API（步骤见 `docs/DEPLOY_EN.md`）；内置 cron 仅作备份：工作流注册 `47 6`（夏令时）与 `47 7`（冬令时）两个 cron（巴黎时间 08:47），由 `schedule-gate` 按当日巴黎时区偏移只放行其中一个，且当日已有 dispatch 运行成功或进行中时跳过；修改时间时需同时修改两个 cron 与门控中的对应字符串。下文为原上游北京时间示例
 
 修改时间：编辑 `.github/workflows/00-daily-analysis.yml` 中的 cron 表达式：
 

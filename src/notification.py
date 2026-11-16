@@ -38,6 +38,7 @@ from src.notification_noise import (
     release_notification_noise,
 )
 from src.market_context import detect_market
+from src.multi_horizon import format_multi_horizon_markdown
 from src.report_language import (
     get_localized_stock_name,
     get_report_labels,
@@ -1417,6 +1418,14 @@ class NotificationService(
                     ])
 
                 self._append_market_snapshot(report_lines, result)
+                report_lines.extend(
+                    format_multi_horizon_markdown(
+                        getattr(result, 'multi_horizon', None),
+                        report_language,
+                        short_term_outlook=getattr(result, 'short_term_outlook', None),
+                        medium_term_outlook=getattr(result, 'medium_term_outlook', None),
+                    )
+                )
 
                 # ========== 数据透视 ==========
                 data_persp = dashboard.get('data_perspective', {}) if dashboard else {}

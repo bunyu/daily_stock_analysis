@@ -1,12 +1,17 @@
 name: Daily Stock Analysis
 
 on:
-  # Scheduled: Mon-Fri 08:30 Europe/Paris (before the 09:00 Euronext Paris open).
+  # Target: Mon-Fri 08:30 Europe/Paris (before the 09:00 Euronext Paris open).
+  #
+  # GitHub's own scheduler can start hours late, so the punctual 08:30 trigger is an
+  # external scheduler (e.g. cron-job.org) calling the workflow_dispatch API; see
+  # docs/DEPLOY_EN.md. The crons below are only a backup: they fire ~15 minutes later
+  # and the schedule-gate job skips them when a run was already started that day.
   # GitHub cron is UTC-only and Paris is UTC+1 (winter) / UTC+2 (summer), so two crons
-  # are registered and the schedule-gate job below lets only the one matching today's offset run.
+  # are registered and the gate lets only the one matching today's offset through.
   schedule:
-    - cron: '30 6 * * 1-5'     # UTC 06:30 = 08:30 Paris summer time
-    - cron: '30 7 * * 1-5'     # UTC 07:30 = 08:30 Paris winter time
+    - cron: '47 6 * * 1-5'     # UTC 06:47 = 08:47 Paris summer time
+    - cron: '47 7 * * 1-5'     # UTC 07:47 = 08:47 Paris winter time
   
   # Manual trigger
   workflow_dispatch:
@@ -34,26 +39,44 @@ concurrency:
 jobs:
   schedule-gate:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
     outputs:
       run: ${{ steps.gate.outputs.run }}
     steps:
-      - name: Pick the cron matching Paris UTC offset
+      - name: Pick the cron matching Paris UTC offset and skip duplicates
         id: gate
         env:
           EVENT_NAME: ${{ github.event_name }}
           EVENT_SCHEDULE: ${{ github.event.schedule }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
         run: |
           if [ "$EVENT_NAME" != "schedule" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           offset=$(TZ=Europe/Paris date +%z)
-          if { [ "$EVENT_SCHEDULE" = "30 6 * * 1-5" ] && [ "$offset" = "+0200" ]; } \
-            || { [ "$EVENT_SCHEDULE" = "30 7 * * 1-5" ] && [ "$offset" = "+0100" ]; }; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Skip: cron '$EVENT_SCHEDULE' is not 08:30 Europe/Paris today (offset $offset)"
+          if ! { { [ "$EVENT_SCHEDULE" = "47 6 * * 1-5" ] && [ "$offset" = "+0200" ]; } \
+            || { [ "$EVENT_SCHEDULE" = "47 7 * * 1-5" ] && [ "$offset" = "+0100" ]; }; }; then
+            echo "Skip: cron '$EVENT_SCHEDULE' is not the Europe/Paris backup slot today (offset $offset)"
             echo "run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Backup slot: skip when an externally/manually dispatched run already
+          # started today (Paris date) and is still running or succeeded.
+          # If the API call fails, run anyway rather than miss the day.
+          since=$(TZ=Europe/Paris date +%Y-%m-%dT00:00:00%:z)
+          existing=$(gh api -X GET "repos/$REPO/actions/workflows/00-daily-analysis.yml/runs" \
+            -f event=workflow_dispatch -f "created=>=$since" -f per_page=50 \
+            --jq "[.workflow_runs[] | select(.id != $RUN_ID) | select(.status != \"completed\" or .conclusion == \"success\")] | length" \
+            2>/dev/null || echo 0)
+          if [ "${existing:-0}" -gt 0 ] 2>/dev/null; then
+            echo "Skip: $existing dispatched run(s) already covered today ($since)"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
           fi
 
   analyze:

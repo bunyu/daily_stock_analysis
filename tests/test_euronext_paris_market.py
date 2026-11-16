@@ -109,3 +109,67 @@ def test_xpar_calendar_and_premarket_phase():
     )
     assert ctx.phase == MarketPhase.PREMARKET
     assert ctx.effective_daily_bar_date == date(2026, 11, 12)
+
+
+def test_amsterdam_suffix_rides_on_euronext_market():
+    assert get_suffix_market("ASML.AS") == "fr"
+    assert detect_market("ASML.AS") == "fr"
+    assert get_market_for_stock("ASML.AS") == "fr"
+    assert detect_market("BRK.A") == "us"
+
+
+def test_curated_euronext_names_and_search_queries():
+    from src.data.euronext_stocks import (
+        EURONEXT_STOCK_PROFILES,
+        build_euronext_news_query,
+        build_euronext_search_dimensions,
+        get_euronext_stock_name,
+    )
+
+    assert all(get_suffix_market(code) == "fr" for code in EURONEXT_STOCK_PROFILES)
+    assert get_euronext_stock_name("mc.pa") == "LVMH"
+    assert get_euronext_stock_name("AAPL") is None
+    assert build_euronext_news_query("AAPL", "Apple") is None
+    assert build_euronext_search_dimensions("600519", "贵州茅台") is None
+
+    dims = build_euronext_search_dimensions("TTE.PA", "TotalEnergies")
+    assert [d["name"] for d in dims] == [
+        "latest_news", "market_analysis", "risk_check", "earnings", "industry",
+    ]
+    assert "objectif de cours" in dims[1]["query"]
+    assert "Brent" in dims[4]["query"]
+    # English templates for Amsterdam-listed ASML, ETF templates for the MSCI World tracker
+    assert "price target" in build_euronext_search_dimensions("ASML.AS", "ASML")[1]["query"]
+    assert "ETF" in build_euronext_news_query("DCAM.PA", "")
+    # Unlisted Euronext symbols still get French queries built from the fetched name
+    assert build_euronext_news_query("AI.PA", "Air Liquide") == "Air Liquide action bourse actualités"
+
+
+def test_search_service_uses_euronext_queries_instead_of_chinese_templates():
+    from src.search_service import SearchResponse, SearchService
+
+    service = SearchService.__new__(SearchService)
+    provider = MagicMock()
+    provider.is_available = True
+    provider.name = "Fake"
+    queries = []
+
+    def _search(query, max_results=5, days=7, **kwargs):
+        queries.append(query)
+        return SearchResponse(query=query, results=[], provider="Fake", success=True)
+
+    provider.search.side_effect = _search
+    service._providers = [provider]
+    service.news_max_age_days = 3
+    service.news_strategy_profile = "short"
+    service.news_window_days = 3
+    service.news_profile_days = 3
+
+    service.search_comprehensive_intel("BNP.PA", "BNP Paribas", max_searches=5)
+
+    assert len(queries) == 5
+    assert all("BNP Paribas" in q for q in queries)
+    assert not any(SearchService._contains_chinese_text(q) for q in queries)
+    assert SearchService._brave_search_locale("BNP.PA", prefer_chinese=False) == {
+        "search_lang": "fr", "country": "FR",
+    }
