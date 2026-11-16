@@ -36,7 +36,7 @@ Owner preferences: work directly on `main` (personal fork, no pull requests), re
 
 ## Not verified
 
-- Yahoo Finance is blocked from the development sandbox, so live `.PA` / `.AS` data, the 400-bar history fetch and the rendered multi-horizon block have only been tested with synthetic data. Check the first real run: every stock should show a "Multi-Horizon Trend & Key Levels" section.
+- Verified on a real run (Actions run 43923578874, 2026-11-16): the 400-bar Yahoo history fetch works (419 bars) and the "Multi-Horizon Trend & Key Levels" block renders with the model's per-horizon view for `.PA` stocks. Yahoo Finance is blocked from the development sandbox, so such checks need a workflow run.
 - `DCAM.PA` and `STMPA.PA` are assumed to be the right Yahoo symbols for the Amundi PEA MSCI World ETF and STMicroelectronics Paris. If a symbol returns no data, look it up on finance.yahoo.com and fix `STOCK_LIST` and `src/data/euronext_stocks.py`.
 - The deduplication in `schedule-gate` has not run in production yet.
 - French search queries have not been run against a real provider.
