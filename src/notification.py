@@ -300,6 +300,9 @@ class NotificationService(
         self._config = config
         self._source_message = source_message
         self._context_channels: List[str] = []
+        # Channels whose text report is replaced by per-stock summary images
+        # for the rest of this run (STOCK_CARDS_ONLY, see StockAnalysisPipeline).
+        self._suppressed_report_channels: set = set()
 
         # Markdown 转图片（Issue #289）
         self._markdown_to_image_channels = set(
@@ -599,6 +602,9 @@ class NotificationService(
         target_channels = list(channels if channels is not None else self._available_channels)
         if route_type is None:
             return target_channels
+        if route_type == "report":
+            suppressed = getattr(self, "_suppressed_report_channels", set())
+            target_channels = [channel for channel in target_channels if channel not in suppressed]
 
         route_config = get_notification_route_config(route_type)
         if route_config is None:
@@ -619,6 +625,10 @@ class NotificationService(
 
         allowed = set(valid_channels)
         return [channel for channel in target_channels if channel.value in allowed]
+
+    def suppress_report_channel(self, channel: NotificationChannel) -> None:
+        """Stop sending text reports to ``channel`` for the rest of this run."""
+        self._suppressed_report_channels.add(channel)
 
     def get_channel_names(self) -> str:
         """获取所有已配置渠道的名称"""

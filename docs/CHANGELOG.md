@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 `STOCK_CARDS_ONLY`：摘要图片全部送达 Telegram 后，本轮 Telegram 不再发送文字报告与大盘复盘（其他渠道不变，图片失败时自动回退为文字）；本 fork 的每日工作流默认开启。
 - [新功能] 新增 `STOCK_CARD_IMAGES`：每只股票生成一张摘要图片（BUY/HOLD/SELL 结论与评分、买入/止损/目标价位、利好与风险、短/中/长期趋势与预测、支撑/压力位、分析置信度与数据局限），保存到 `reports/cards/` 并以图片发送到 Telegram；渲染使用 Python Playwright（或 `CHROME_PATH` / 系统 Chrome），不可用时自动跳过。本 fork 的每日工作流默认开启。
 - [新功能] 非 A 股个股新增确定性的「多周期趋势与关键价位」：基于约 400 根日线计算短期/中期/长期趋势（MA10-20 / MA20-50 / MA50-200）、1M-12M 表现、52 周区间以及由波段高低点聚类 + MA50/MA200 得到的支撑/压力位，注入 Prompt 并在决策仪表盘报告中展示（含模型的分周期买入/持有/减仓结论）。
 - [新功能] Euronext 个股新闻检索改用法语/英语金融关键词（不再套用 A 股中文模板），内置 17 只常用标的的简称与行业关键词（`src/data/euronext_stocks.py`）；`fr` 市场新增 Euronext Amsterdam 后缀 `.AS`（如 `ASML.AS`）。

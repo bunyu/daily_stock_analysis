@@ -1275,6 +1275,8 @@ class Config:
     md2img_engine: str = "wkhtmltoimage"  # wkhtmltoimage | markdown-to-file | playwright
     # One-image summary card per stock (src/stock_card.py), saved to reports/cards and sent to Telegram
     stock_card_images: bool = False
+    # When the cards reach Telegram, skip the text reports there (cards only)
+    stock_cards_only: bool = False
     share_image_xiaohongshu_url: Optional[str] = None
     share_image_xiaohongshu_handle: Optional[str] = None
     share_image_xiaohongshu_id: Optional[str] = None
@@ -2263,6 +2265,7 @@ class Config:
             ),
             md2img_engine=cls._parse_md2img_engine(os.getenv('MD2IMG_ENGINE', 'wkhtmltoimage')),
             stock_card_images=parse_env_bool(os.getenv('STOCK_CARD_IMAGES'), False),
+            stock_cards_only=parse_env_bool(os.getenv('STOCK_CARDS_ONLY'), False),
             share_image_xiaohongshu_url=(os.getenv('SHARE_IMAGE_XIAOHONGSHU_URL') or '').strip() or None,
             share_image_xiaohongshu_handle=(os.getenv('SHARE_IMAGE_XIAOHONGSHU_HANDLE') or '').strip() or None,
             share_image_xiaohongshu_id=(os.getenv('SHARE_IMAGE_XIAOHONGSHU_ID') or '').strip() or None,

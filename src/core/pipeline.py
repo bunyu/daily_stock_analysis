@@ -3642,6 +3642,10 @@ class StockAnalysisPipeline:
         if results and not dry_run:
             self._save_local_report(results, report_type)
 
+        # Summary images first, so STOCK_CARDS_ONLY can drop the Telegram text report
+        if results and not dry_run and getattr(self.config, "stock_card_images", False):
+            self._publish_stock_cards(results, send=send_notification)
+
         # 发送通知（单股推送模式下跳过汇总推送，避免重复）
         if results and send_notification and not dry_run:
             if single_stock_notify:
@@ -3654,9 +3658,6 @@ class StockAnalysisPipeline:
                 self._send_notifications(results, report_type, skip_push=True)
             else:
                 self._send_notifications(results, report_type)
-
-        if results and not dry_run and getattr(self.config, "stock_card_images", False):
-            self._publish_stock_cards(results, send=send_notification)
         
         return results
 
@@ -3680,9 +3681,8 @@ class StockAnalysisPipeline:
             and NotificationChannel.TELEGRAM in self.notifier.get_available_channels()
         )
         rendered = sent = 0
-        for result in results:
-            if not getattr(result, "success", True):
-                continue
+        eligible = [r for r in results if getattr(r, "success", True)]
+        for result in eligible:
             try:
                 data = build_stock_card_data(result)
                 png = render_card_png(build_stock_card_html(data))
@@ -3702,6 +3702,16 @@ class StockAnalysisPipeline:
         logger.info(
             "Stock cards: %s rendered to %s, %s sent to Telegram", rendered, cards_dir, sent
         )
+        if getattr(self.config, "stock_cards_only", False):
+            if eligible and sent == len(eligible):
+                self.notifier.suppress_report_channel(NotificationChannel.TELEGRAM)
+                logger.info("STOCK_CARDS_ONLY: Telegram receives the summary images only, text reports skipped")
+            elif telegram_ready:
+                logger.warning(
+                    "STOCK_CARDS_ONLY: only %s/%s cards reached Telegram, sending the text report as well",
+                    sent,
+                    len(eligible),
+                )
 
     def _send_single_stock_notification(
         self,

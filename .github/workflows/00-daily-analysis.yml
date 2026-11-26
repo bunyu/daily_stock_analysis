@@ -416,6 +416,8 @@ jobs:
           TELEGRAM_MESSAGE_THREAD_ID: ${{ secrets.TELEGRAM_MESSAGE_THREAD_ID }}
           # One summary image per stock, saved to reports/cards and sent to Telegram
           STOCK_CARD_IMAGES: ${{ vars.STOCK_CARD_IMAGES || 'true' }}
+          # true: Telegram gets only the images (text report and market review skipped there)
+          STOCK_CARDS_ONLY: ${{ vars.STOCK_CARDS_ONLY || 'true' }}
           
           # Option 4: Email
           EMAIL_SENDER: ${{ vars.EMAIL_SENDER || secrets.EMAIL_SENDER }}

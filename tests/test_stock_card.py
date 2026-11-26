@@ -110,6 +110,7 @@ def test_pipeline_publishes_cards_to_disk_and_telegram(tmp_path):
     from src.notification import NotificationChannel
 
     pipeline = StockAnalysisPipeline.__new__(StockAnalysisPipeline)
+    pipeline.config = MagicMock(stock_cards_only=False)
     pipeline.notifier = MagicMock()
     pipeline.notifier.is_available.return_value = True
     pipeline.notifier.get_available_channels.return_value = [NotificationChannel.TELEGRAM]
@@ -131,6 +132,7 @@ def test_pipeline_cards_not_sent_when_notifications_disabled(tmp_path):
     from src.core.pipeline import StockAnalysisPipeline
 
     pipeline = StockAnalysisPipeline.__new__(StockAnalysisPipeline)
+    pipeline.config = MagicMock(stock_cards_only=False)
     pipeline.notifier = MagicMock()
     with patch("src.stock_card.render_card_png", return_value=b"PNG"), patch(
         "src.core.pipeline.Path.resolve", return_value=tmp_path / "src" / "core" / "pipeline.py"
@@ -138,3 +140,49 @@ def test_pipeline_cards_not_sent_when_notifications_disabled(tmp_path):
         pipeline._publish_stock_cards([_result()], send=False)
     pipeline.notifier._send_telegram_photo.assert_not_called()
     assert list(tmp_path.glob("reports/cards/*/MC.PA.png"))
+
+
+def _card_pipeline(cards_only, photo_ok=True):
+    from src.core.pipeline import StockAnalysisPipeline
+    from src.notification import NotificationChannel
+
+    pipeline = StockAnalysisPipeline.__new__(StockAnalysisPipeline)
+    pipeline.config = MagicMock(stock_cards_only=cards_only)
+    pipeline.notifier = MagicMock()
+    pipeline.notifier.is_available.return_value = True
+    pipeline.notifier.get_available_channels.return_value = [NotificationChannel.TELEGRAM]
+    pipeline.notifier._send_telegram_photo.return_value = photo_ok
+    return pipeline
+
+
+def test_cards_only_suppresses_telegram_text_after_all_cards_sent(tmp_path):
+    from src.notification import NotificationChannel
+
+    pipeline = _card_pipeline(cards_only=True)
+    with patch("src.stock_card.render_card_png", return_value=b"PNG"), patch(
+        "src.core.pipeline.Path.resolve", return_value=tmp_path / "src" / "core" / "pipeline.py"
+    ):
+        pipeline._publish_stock_cards([_result(), _result(code="TTE.PA")], send=True)
+    pipeline.notifier.suppress_report_channel.assert_called_once_with(NotificationChannel.TELEGRAM)
+
+
+def test_cards_only_keeps_text_when_a_card_fails(tmp_path):
+    for cards_only, photo_ok in ((True, False), (False, True)):
+        pipeline = _card_pipeline(cards_only=cards_only, photo_ok=photo_ok)
+        with patch("src.stock_card.render_card_png", return_value=b"PNG"), patch(
+            "src.core.pipeline.Path.resolve", return_value=tmp_path / "src" / "core" / "pipeline.py"
+        ):
+            pipeline._publish_stock_cards([_result()], send=True)
+        pipeline.notifier.suppress_report_channel.assert_not_called()
+
+
+def test_suppressed_channel_is_removed_from_report_route_only():
+    from src.notification import NotificationChannel, NotificationService
+
+    service = NotificationService.__new__(NotificationService)
+    service._config = MagicMock(notification_report_channels=[], notification_alert_channels=[])
+    service._available_channels = [NotificationChannel.TELEGRAM, NotificationChannel.EMAIL]
+    service._suppressed_report_channels = set()
+    service.suppress_report_channel(NotificationChannel.TELEGRAM)
+    assert service.get_channels_for_route("report") == [NotificationChannel.EMAIL]
+    assert NotificationChannel.TELEGRAM in service.get_channels_for_route("alert")

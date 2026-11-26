@@ -44,6 +44,7 @@ DCAM.PA,ASML.AS,BNP.PA,AIR.PA,EDEN.PA,ENGI.PA,ENX.PA,MC.PA,ORA.PA,OVH.PA,SAF.PA,
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Secrets | Receive the report on Telegram. Both are required. |
 | `TAVILY_API_KEYS` or `BRAVE_API_KEYS` | Secret | News search. Without a search key the report has no news section. 17 stocks x 5 searches a day is about 1,900 searches a month, above Tavily's free 1,000; use several keys or Brave. |
 | `STOCK_CARD_IMAGES` | Variable | `false` turns off the per-stock summary images (on by default in the workflow). |
+| `STOCK_CARDS_ONLY` | Variable | `true` by default in the workflow: Telegram receives only the images, no text report or market review. Falls back to text if a card fails. Set `false` to get both. |
 | `ANALYSIS_TIMEOUT_MINUTES` | Variable | Job timeout, default 30. Set `45` for the 17-stock watchlist. |
 
 ### 3. Run it
