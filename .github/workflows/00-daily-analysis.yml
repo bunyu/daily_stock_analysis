@@ -107,6 +107,12 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           python -c "import futu; print('✅ futu SDK import OK')"
+
+      - name: Install stock card renderer
+        # One summary image per stock (STOCK_CARD_IMAGES, on by default in this fork).
+        # Playwright drives the Google Chrome already installed on the runner.
+        if: ${{ (vars.STOCK_CARD_IMAGES || 'true') != 'false' }}
+        run: pip install playwright
       
       - name: Create working directories
         run: |
@@ -408,6 +414,8 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TELEGRAM_MESSAGE_THREAD_ID: ${{ secrets.TELEGRAM_MESSAGE_THREAD_ID }}
+          # One summary image per stock, saved to reports/cards and sent to Telegram
+          STOCK_CARD_IMAGES: ${{ vars.STOCK_CARD_IMAGES || 'true' }}
           
           # Option 4: Email
           EMAIL_SENDER: ${{ vars.EMAIL_SENDER || secrets.EMAIL_SENDER }}

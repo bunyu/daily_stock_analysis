@@ -14,6 +14,7 @@ This repository is a personal fork of [ZhuLinsen/daily_stock_analysis](https://g
 | Market review | `MARKET_REVIEW_REGION=fr` reviews CAC 40, SBF 120 and Euro Stoxx 50. |
 | Multi-horizon analysis | Short, medium and long-term trend, 1M to 12M performance, 52-week range, and the nearest supports and resistances, computed from about 400 daily bars and shown in the report next to the model's Buy / Hold / Reduce view per horizon. |
 | News search | French (or English) financial queries per stock, with curated sector and risk keywords for 17 watchlist names in [`src/data/euronext_stocks.py`](src/data/euronext_stocks.py). |
+| Summary cards | One dark-theme image per stock (verdict, price plan, positives and risks, trend and forecast, key levels, reliability), saved to `reports/cards/` and sent to Telegram. `STOCK_CARD_IMAGES`, on by default in the workflow. |
 | English reports | Workflow name, logs, report labels, number formats (K/M/B, ISO currency) in English. Reports are also printed on the run's Summary page. |
 | Schedule | Mon-Fri 08:30 Europe/Paris through an external trigger, with a GitHub cron backup at 08:47 that skips itself when the day is already covered. |
 
@@ -42,6 +43,7 @@ DCAM.PA,ASML.AS,BNP.PA,AIR.PA,EDEN.PA,ENGI.PA,ENX.PA,MC.PA,ORA.PA,OVH.PA,SAF.PA,
 | --- | --- | --- |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Secrets | Receive the report on Telegram. Both are required. |
 | `TAVILY_API_KEYS` or `BRAVE_API_KEYS` | Secret | News search. Without a search key the report has no news section. 17 stocks x 5 searches a day is about 1,900 searches a month, above Tavily's free 1,000; use several keys or Brave. |
+| `STOCK_CARD_IMAGES` | Variable | `false` turns off the per-stock summary images (on by default in the workflow). |
 | `ANALYSIS_TIMEOUT_MINUTES` | Variable | Job timeout, default 30. Set `45` for the 17-stock watchlist. |
 
 ### 3. Run it
@@ -109,6 +111,7 @@ python -m pytest -m "not network"
 | `src/services/market_symbol_utils.py` | Suffix market rules (`fr` = `.PA`, `.AS`) |
 | `src/data/euronext_stocks.py` | Watchlist names and search keywords |
 | `src/multi_horizon.py` | Multi-horizon trend, supports and resistances |
+| `src/stock_card.py` | One-image summary card per stock |
 | `src/search_service.py` | News search providers and queries |
 | `src/core/pipeline.py` | Per-stock analysis pipeline |
 | `src/analyzer.py` | Prompt and LLM result parsing |

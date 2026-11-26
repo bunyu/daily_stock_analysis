@@ -342,8 +342,13 @@ class TelegramSender:
 
         return all_success
 
-    def _send_telegram_photo(self, image_bytes: bytes) -> bool:
-        """Send image via Telegram sendPhoto API (Issue #289)."""
+    def _send_telegram_photo(
+        self,
+        image_bytes: bytes,
+        caption: Optional[str] = None,
+        filename: str = "report.png",
+    ) -> bool:
+        """Send image via Telegram sendPhoto API (Issue #289); optional plain-text caption."""
         if not self._is_telegram_configured():
             return False
         bot_token = self._telegram_config['bot_token']
@@ -354,7 +359,9 @@ class TelegramSender:
             data = {"chat_id": chat_id}
             if message_thread_id:
                 data['message_thread_id'] = message_thread_id
-            files = {"photo": ("report.png", image_bytes, "image/png")}
+            if caption:
+                data['caption'] = caption[:1024]
+            files = {"photo": (filename, image_bytes, "image/png")}
             response = requests.post(api_url, data=data, files=files, timeout=30)
             if response.status_code == 200 and response.json().get('ok'):
                 logger.info("Telegram 图片发送成功")

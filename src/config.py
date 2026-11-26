@@ -1273,6 +1273,8 @@ class Config:
     markdown_to_image_channels: List[str] = field(default_factory=list)  # 逗号分隔：telegram,wechat,custom,email
     markdown_to_image_max_chars: int = 15000  # 超过此长度不转换，避免超大图片
     md2img_engine: str = "wkhtmltoimage"  # wkhtmltoimage | markdown-to-file | playwright
+    # One-image summary card per stock (src/stock_card.py), saved to reports/cards and sent to Telegram
+    stock_card_images: bool = False
     share_image_xiaohongshu_url: Optional[str] = None
     share_image_xiaohongshu_handle: Optional[str] = None
     share_image_xiaohongshu_id: Optional[str] = None
@@ -2260,6 +2262,7 @@ class Config:
                 minimum=1,
             ),
             md2img_engine=cls._parse_md2img_engine(os.getenv('MD2IMG_ENGINE', 'wkhtmltoimage')),
+            stock_card_images=parse_env_bool(os.getenv('STOCK_CARD_IMAGES'), False),
             share_image_xiaohongshu_url=(os.getenv('SHARE_IMAGE_XIAOHONGSHU_URL') or '').strip() or None,
             share_image_xiaohongshu_handle=(os.getenv('SHARE_IMAGE_XIAOHONGSHU_HANDLE') or '').strip() or None,
             share_image_xiaohongshu_id=(os.getenv('SHARE_IMAGE_XIAOHONGSHU_ID') or '').strip() or None,

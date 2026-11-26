@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 `STOCK_CARD_IMAGES`：每只股票生成一张摘要图片（BUY/HOLD/SELL 结论与评分、买入/止损/目标价位、利好与风险、短/中/长期趋势与预测、支撑/压力位、分析置信度与数据局限），保存到 `reports/cards/` 并以图片发送到 Telegram；渲染使用 Python Playwright（或 `CHROME_PATH` / 系统 Chrome），不可用时自动跳过。本 fork 的每日工作流默认开启。
 - [新功能] 非 A 股个股新增确定性的「多周期趋势与关键价位」：基于约 400 根日线计算短期/中期/长期趋势（MA10-20 / MA20-50 / MA50-200）、1M-12M 表现、52 周区间以及由波段高低点聚类 + MA50/MA200 得到的支撑/压力位，注入 Prompt 并在决策仪表盘报告中展示（含模型的分周期买入/持有/减仓结论）。
 - [新功能] Euronext 个股新闻检索改用法语/英语金融关键词（不再套用 A 股中文模板），内置 17 只常用标的的简称与行业关键词（`src/data/euronext_stocks.py`）；`fr` 市场新增 Euronext Amsterdam 后缀 `.AS`（如 `ASML.AS`）。
 - [改进] 每日 Actions 的 GitHub 定时改为备份触发（巴黎时间 08:47），当日已有外部 `workflow_dispatch` 运行成功或进行中时自动跳过；准点 08:30 建议由外部调度器调用 dispatch API，见 `docs/DEPLOY_EN.md`。

@@ -25,6 +25,10 @@ Owner preferences: work directly on `main` (personal fork, no pull requests), re
 - **Horizon wording**: the LLM JSON schema was left untouched. The prompt asks the model to put the short-term view in `short_term_outlook` and the medium plus long-term view in `medium_term_outlook`; the report shows both under the computed table.
 - **Schedule**: `.github/workflows/00-daily-analysis.yml`. External `workflow_dispatch` at 08:30 is the primary trigger. GitHub crons `47 6` (summer) and `47 7` (winter) UTC are a backup; `schedule-gate` lets through only the cron matching today's Paris offset, and skips it when a dispatched run of the same Paris day succeeded or is still running. If the API check fails, the backup runs.
 
+### Summary cards (2026-11-26)
+
+`src/stock_card.py` turns each `AnalysisResult` into a fixed 1080x1470 dark-theme HTML card and screenshots it (Python Playwright with its Chromium, `CHROME_PATH`, or the runner's Google Chrome; fallback `chrome --headless --screenshot`). `StockAnalysisPipeline._publish_stock_cards` saves the PNGs to `reports/cards/<date>/<code>.png` (uploaded with the run artifact) and sends them with `sendPhoto` when Telegram is configured. Controlled by `STOCK_CARD_IMAGES` (default false in code, `true` in the workflow, which installs `playwright` in a separate step). A rendering failure only skips the cards. Labels are English; the owner reviewed and approved a sample, then asked for the dark theme.
+
 ## Owner actions still open
 
 1. **Set `STOCK_LIST`** (repository variable) to:

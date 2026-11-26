@@ -12,6 +12,7 @@ A股自选股智能分析系统 - 核心分析流水线
 """
 
 import logging
+import re
 import inspect
 import threading
 import time
@@ -3653,8 +3654,54 @@ class StockAnalysisPipeline:
                 self._send_notifications(results, report_type, skip_push=True)
             else:
                 self._send_notifications(results, report_type)
+
+        if results and not dry_run and getattr(self.config, "stock_card_images", False):
+            self._publish_stock_cards(results, send=send_notification)
         
         return results
+
+    def _publish_stock_cards(self, results: List[AnalysisResult], *, send: bool) -> None:
+        """Render one summary image per stock, save it under reports/cards and send it to Telegram.
+
+        Best effort: a rendering or sending failure is logged and never affects
+        the analysis results or the text report.
+        """
+        from src.stock_card import (
+            build_stock_card_data,
+            build_stock_card_html,
+            card_caption,
+            render_card_png,
+        )
+
+        cards_dir = Path(__file__).resolve().parents[2] / "reports" / "cards" / datetime.now().strftime("%Y%m%d")
+        telegram_ready = (
+            send
+            and self.notifier.is_available()
+            and NotificationChannel.TELEGRAM in self.notifier.get_available_channels()
+        )
+        rendered = sent = 0
+        for result in results:
+            if not getattr(result, "success", True):
+                continue
+            try:
+                data = build_stock_card_data(result)
+                png = render_card_png(build_stock_card_html(data))
+                if not png:
+                    logger.warning("Stock cards skipped: no image renderer available")
+                    return
+                rendered += 1
+                safe_code = re.sub(r"[^A-Za-z0-9._-]", "_", str(result.code))
+                cards_dir.mkdir(parents=True, exist_ok=True)
+                (cards_dir / f"{safe_code}.png").write_bytes(png)
+                if telegram_ready and self.notifier._send_telegram_photo(
+                    png, caption=card_caption(data), filename=f"{safe_code}.png"
+                ):
+                    sent += 1
+            except Exception as exc:
+                logger.warning("[%s] stock card failed: %s", getattr(result, "code", "?"), exc)
+        logger.info(
+            "Stock cards: %s rendered to %s, %s sent to Telegram", rendered, cards_dir, sent
+        )
 
     def _send_single_stock_notification(
         self,
